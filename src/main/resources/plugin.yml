@@ -1,0 +1,3 @@
+id: attendance_plugin
+name: Attendance Plugin
+main: de.igslandstuhl.database.attendance.AttendancePlugin
