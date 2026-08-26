@@ -1,0 +1,128 @@
+{
+  "/attendance-checkin": {
+    "type": "GET",
+    "handler_type": "TemplatingFileRequestHandler",
+    "namespaces": [
+      "user"
+    ],
+    "context": "html",
+    "access_level": "student"
+  },
+  "/attendance": {
+    "type": "GET",
+    "handler_type": "TemplatingFileRequestHandler",
+    "namespaces": [
+      "teacher"
+    ],
+    "context": "html",
+    "access_level": "teacher"
+  },
+  "/attendance-admin": {
+    "type": "GET",
+    "handler_type": "TemplatingFileRequestHandler",
+    "namespaces": [
+      "admin"
+    ],
+    "context": "html",
+    "access_level": "admin"
+  },
+  "/attendance-display": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-checkin.js": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "user"
+    ],
+    "context": "js",
+    "access_level": "student"
+  },
+  "/attendance.js": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "teacher"
+    ],
+    "context": "js",
+    "access_level": "teacher"
+  },
+  "/attendance-admin.js": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "admin"
+    ],
+    "context": "js",
+    "access_level": "admin"
+  },
+  "/attendance-display.js": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "js",
+    "access_level": "public"
+  },
+  "/attendance-display/arrival": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-display/la": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-display/ws": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-display/nawi": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-display/input1": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-display/gn": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "site"
+    ],
+    "context": "html",
+    "access_level": "public"
+  }
+}

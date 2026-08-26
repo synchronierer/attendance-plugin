@@ -1,5 +1,6 @@
 plugins {
     java
+    id("com.gradleup.shadow") version "9.0.0"
 }
 
 repositories {
@@ -16,9 +17,13 @@ val studentDatabaseJarFiles = files(studentDatabaseJar)
 
 dependencies {
     compileOnly(studentDatabaseJarFiles)
+    testCompileOnly(studentDatabaseJarFiles)
     compileOnly("org.slf4j:slf4j-api:2.0.13")
-    runtimeOnly(studentDatabaseJarFiles)
+    testRuntimeOnly(studentDatabaseJarFiles)
     testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    testImplementation("com.google.code.gson:gson:2.14.0")
+    implementation("com.google.zxing:core:3.5.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
 }
 
 java {
@@ -40,3 +45,11 @@ tasks.withType<Jar> {
 
 version = "v0.1.0"
 group = "igs-landstuhl.plugins"
+
+
+tasks.shadowJar {
+    archiveClassifier.set("")
+    dependencies { include(dependency("com.google.zxing:core")) }
+}
+
+tasks.build { dependsOn(tasks.shadowJar) }

@@ -1,0 +1,12 @@
+[
+  {
+    "type": "TEACHER_DASHBOARD",
+    "path": "/attendance",
+    "label": "Attendance"
+  },
+  {
+    "type": "ADMIN_DASHBOARD",
+    "path": "/attendance-admin",
+    "label": "Attendance verwalten"
+  }
+]

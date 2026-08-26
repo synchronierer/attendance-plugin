@@ -1,3 +1,4 @@
 id: attendance_plugin
 name: Attendance Plugin
+description: SOL attendance check-in via session-bound QR tokens
 main: de.igslandstuhl.database.attendance.AttendancePlugin

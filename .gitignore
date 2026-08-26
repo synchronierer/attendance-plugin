@@ -1,0 +1,6 @@
+
+# Local build/runtime files
+.gradle/
+.gradle-user-home/
+build/
+logs/

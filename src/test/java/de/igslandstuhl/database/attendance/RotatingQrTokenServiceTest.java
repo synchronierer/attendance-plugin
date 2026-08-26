@@ -1,0 +1,6 @@
+package de.igslandstuhl.database.attendance;import static org.junit.jupiter.api.Assertions.*;import java.time.*;import org.junit.jupiter.api.Test;
+class RotatingQrTokenServiceTest{private static final String SECRET="01234567890123456789012345678901234567890123";private static RotatingQrTokenService at(long seconds){return new RotatingQrTokenService(SECRET,Clock.fixed(Instant.ofEpochSecond(seconds),ZoneOffset.UTC));}
+ @Test void createsAndValidatesThirtySecondLocationBoundToken(){String token=at(300).create(17);assertEquals(17,at(329).validate(token));assertNotEquals(token,at(330).create(17));}
+ @Test void acceptsOnlyImmediatelyPreviousWindow(){String token=at(300).create(4);assertEquals(4,at(359).validate(token));assertThrows(IllegalArgumentException.class,()->at(360).validate(token));}
+ @Test void rejectsManipulationAndFutureTokens(){String token=at(300).create(9);assertThrows(IllegalArgumentException.class,()->at(300).validate(token.substring(0,token.length()-1)+"A"));assertThrows(IllegalArgumentException.class,()->at(299).validate(token));}
+ @Test void signatureBindsLocation(){String token=at(300).create(9);assertEquals(9,at(300).validate(token));String other=at(300).create(10);assertEquals(10,at(300).validate(other));assertNotEquals(token,other);}}
