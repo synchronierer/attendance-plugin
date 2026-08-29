@@ -6,7 +6,7 @@
       "user"
     ],
     "context": "html",
-    "access_level": "student"
+    "access_level": "public"
   },
   "/attendance": {
     "type": "GET",
@@ -42,7 +42,7 @@
       "user"
     ],
     "context": "js",
-    "access_level": "student"
+    "access_level": "public"
   },
   "/attendance.js": {
     "type": "GET",

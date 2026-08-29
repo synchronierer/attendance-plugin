@@ -4,7 +4,21 @@
     "handler_type": "PostRequestHandler",
     "namespaces": [],
     "context": "html",
-    "access_level": "student"
+    "access_level": "public"
+  },
+  "/attendance-pending": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-resume": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "public"
   },
   "/attendance-display-token": {
     "type": "POST",
