@@ -3,10 +3,19 @@ const post = async (path, data = {}) => {
   if (!response.ok) throw new Error(await response.text());
   return response.json();
 };
-const form = document.querySelector("#location-form"), body = document.querySelector("#locations"), status = document.querySelector("#status");
 const typeLabel = type => type === "ARRIVAL" ? "Ankunft" : "Aufenthaltsort";
 const cell = value => { const td = document.createElement("td"); td.textContent = value; return td; };
-async function refresh() {
+function init() {
+  const form = document.querySelector("#location-form");
+  const body = document.querySelector("#locations");
+  const status = document.querySelector("#status");
+  const heading = document.querySelector("#location-form-heading");
+  const reset = document.querySelector("#reset");
+  const type = form?.elements?.type;
+  const typeHelp = document.querySelector("#type-help");
+  if (!form || !body || !status || !heading || !reset || !type || !typeHelp) throw new Error("Attendance-Admin: erforderliche Seitenelemente fehlen");
+  type.addEventListener("change", event => { typeHelp.textContent = event.target.value === "ARRIVAL" ? "Registriert die Ankunft in der Schule." : "Registriert den aktuellen Arbeits- oder Aufenthaltsort."; });
+  async function refresh() {
   const data = await post("/attendance-admin-data");
   body.replaceChildren();
   for (const x of data.locations) {
@@ -19,7 +28,9 @@ async function refresh() {
     edit.type = "button"; edit.textContent = "Bearbeiten"; edit.onclick = () => { form.elements.id.value = x.id; form.elements.code.value = x.code; form.elements.name.value = x.name; form.elements.type.value = x.type; form.elements.displayOrder.value = x.displayOrder; form.elements.active.checked = x.active; document.querySelector("#location-form-heading").textContent = "Bereich bearbeiten"; };
     editCell.append(edit); row.append(editCell); body.append(row);
   }
+  }
+  form.onsubmit = async event => { event.preventDefault(); const f = event.currentTarget, fd = new FormData(f), x = Object.fromEntries(fd); x.displayOrder = Number(x.displayOrder); x.active = f.elements.active.checked; if (x.id) x.id = Number(x.id); else delete x.id; try { await post("/attendance-location-save", x); status.textContent = "Bereich gespeichert."; f.reset(); f.elements.id.value = ""; f.elements.active.checked = true; heading.textContent = "Neuen Bereich anlegen"; await refresh(); } catch (e) { status.textContent = e.message; } };
+  reset.onclick = () => { form.reset(); form.elements.id.value = ""; form.elements.active.checked = true; heading.textContent = "Neuen Bereich anlegen"; };
+  refresh().catch(e => { status.textContent = e.message; });
 }
-form.onsubmit = async event => { event.preventDefault(); const f = event.currentTarget, fd = new FormData(f), x = Object.fromEntries(fd); x.displayOrder = Number(x.displayOrder); x.active = f.elements.active.checked; if (x.id) x.id = Number(x.id); else delete x.id; try { await post("/attendance-location-save", x); status.textContent = "Bereich gespeichert."; f.reset(); f.elements.id.value = ""; f.elements.active.checked = true; document.querySelector("#location-form-heading").textContent = "Neuen Bereich anlegen"; await refresh(); } catch (e) { status.textContent = e.message; } };
-document.querySelector("#reset").onclick = () => { form.reset(); form.elements.id.value = ""; form.elements.active.checked = true; document.querySelector("#location-form-heading").textContent = "Neuen Bereich anlegen"; };
-refresh().catch(e => { status.textContent = e.message; });
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true }); else init();
