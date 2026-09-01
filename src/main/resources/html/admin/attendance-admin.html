@@ -2,30 +2,44 @@
 <main class="attendance">
   <nav>%[admin_nav]</nav>
   <h1>Attendance verwalten</h1>
-  <p class="intro">Bereiche und QR-Codes für die Anwesenheitserfassung verwalten.</p>
+  <p class="intro">Hier verwalten Sie die Bereiche, für die Schülerinnen und Schüler einen QR-Code scannen können.</p>
 
+  <section aria-labelledby="locations-heading">
+    <h2 id="locations-heading">Vorhandene Bereiche</h2>
+    <p class="help">Jeder Bereich ist zugleich die Definition für seinen dynamischen QR-Code.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Typ</th><th>Code</th><th>Status</th><th>Reihenfolge</th><th>QR</th><th>Bearbeiten</th></tr></thead>
+        <tbody id="locations"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="location-form-heading">
+  <h2 id="location-form-heading">Neuen Bereich anlegen</h2>
   <form id="location-form" class="attendance-location-form">
     <input type="hidden" name="id" value="">
-    <label>Code <input name="code" required maxlength="32" autocomplete="off"></label>
-    <label>Name <input name="name" required maxlength="120"></label>
-    <label>Typ
+    <label>Name <span class="help">z. B. Bibliothek</span><input name="name" required maxlength="120"></label>
+    <label>Code <span class="help">z. B. BIB</span><input name="code" required maxlength="32" autocomplete="off"></label>
+    <label>Art
       <select name="type">
-        <option value="LOCATION">Aufenthaltsort</option>
         <option value="ARRIVAL">Ankunft</option>
+        <option value="LOCATION">Aufenthaltsort</option>
       </select>
+      <span id="type-help" class="help">Registriert die Ankunft in der Schule.</span>
     </label>
-    <label>Reihenfolge <input name="displayOrder" type="number" value="0" min="0"></label>
+    <label>Reihenfolge <span class="help">Bestimmt die Sortierung in der Verwaltung.</span><input name="displayOrder" type="number" value="0" min="0"></label>
     <label><input name="active" type="checkbox" checked> Aktiv</label>
     <button type="submit">Speichern</button>
     <button type="button" id="reset">Zurücksetzen</button>
   </form>
+  </section>
   <p id="status" role="status" aria-live="polite"></p>
 
-  <div class="table-wrap">
-    <table>
-      <caption>Bereiche und ihre dynamischen QR-/Display-Einstiege</caption>
-      <thead><tr><th>Code</th><th>Name</th><th>Typ</th><th>Status</th><th>Reihenfolge</th><th>QR / Display</th><th>Bearbeiten</th></tr></thead>
-      <tbody id="locations"></tbody>
-    </table>
-  </div>
 </main>
+<style>
+.attendance{max-width:78rem;margin:auto;padding:1rem 1.5rem}.attendance h1{margin:.7rem 0 .35rem}.attendance h2{margin:1.5rem 0 .35rem}.intro{font-size:1.05rem}.help{color:#52616b;font-size:.9rem}.attendance section{margin:1.25rem 0;padding:1rem 1.15rem;background:#fff;border:1px solid #d9e0e6;border-radius:.6rem}.table-wrap{overflow:auto}.attendance table{width:100%;border-collapse:collapse}.attendance th,.attendance td{text-align:left;padding:.65rem;border-bottom:1px solid #d9e0e6;white-space:nowrap}.attendance-location-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1rem;align-items:end}.attendance-location-form label{display:grid;gap:.3rem;font-weight:600}.attendance-location-form input,.attendance-location-form select,.attendance-location-form button{font:inherit;padding:.5rem}.attendance-location-form button{cursor:pointer}.attendance-location-form label:has(input[type=checkbox]){display:flex;align-items:center;gap:.45rem}.attendance-location-form label:has(input[type=checkbox]) input{width:auto}.attendance a{font-weight:600}@media(max-width:600px){.attendance{padding:.75rem}.attendance section{padding:.75rem}.attendance-location-form{display:flex;flex-direction:column;align-items:stretch}}
+</style><script>
+const typeHelp = document.querySelector('#type-help');
+document.querySelector('[name="type"]').addEventListener('change', event => { typeHelp.textContent = event.target.value === 'ARRIVAL' ? 'Registriert die Ankunft in der Schule.' : 'Registriert den aktuellen Arbeits- oder Aufenthaltsort.'; });
+</script><script src="/attendance-admin.js"></script>
