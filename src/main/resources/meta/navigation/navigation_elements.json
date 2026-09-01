@@ -2,7 +2,12 @@
   {
     "type": "TEACHER_DASHBOARD",
     "path": "/attendance",
-    "label": "Attendance"
+    "label": "Anwesenheit"
+  },
+  {
+    "type": "ADMIN_DASHBOARD",
+    "path": "/attendance",
+    "label": "Anwesenheit"
   },
   {
     "type": "ADMIN_DASHBOARD",
