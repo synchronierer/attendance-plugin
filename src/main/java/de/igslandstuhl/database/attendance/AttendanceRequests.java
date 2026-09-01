@@ -1,13 +1,33 @@
 package de.igslandstuhl.database.attendance;
-import com.google.zxing.BarcodeFormat;import com.google.zxing.qrcode.QRCodeWriter;import de.igslandstuhl.database.api.*;import de.igslandstuhl.database.server.Server;import de.igslandstuhl.database.server.webserver.Cookie;import de.igslandstuhl.database.server.webserver.access.AccessLevel;import de.igslandstuhl.database.server.webserver.handlers.HttpHandler;import de.igslandstuhl.database.server.webserver.requests.APIPostRequest;import de.igslandstuhl.database.server.webserver.responses.PostResponse;import java.time.*;import java.util.*;import org.slf4j.Logger;import org.slf4j.LoggerFactory;
+import com.google.zxing.BarcodeFormat;import com.google.zxing.qrcode.QRCodeWriter;import de.igslandstuhl.database.api.*;import de.igslandstuhl.database.server.webserver.access.AccessLevel;import de.igslandstuhl.database.server.webserver.handlers.HttpHandler;import de.igslandstuhl.database.server.webserver.responses.PostResponse;import java.time.*;import java.util.*;import org.slf4j.Logger;import org.slf4j.LoggerFactory;
 final class AttendanceRequests {
- private static final Logger LOGGER=LoggerFactory.getLogger(AttendanceRequests.class);private static final Clock CLOCK=Clock.systemUTC();private static final ZoneId ZONE=ZoneId.of("Europe/Berlin");private static final PendingCheckinStore PENDING=new PendingCheckinStore(CLOCK);private AttendanceRequests(){}
+ private static final Logger LOGGER=LoggerFactory.getLogger(AttendanceRequests.class);private static final Clock CLOCK=Clock.systemUTC();private static final ZoneId ZONE=ZoneId.of("Europe/Berlin");private AttendanceRequests(){}
  static Student strictStudent(User u){return u instanceof Student s&&s.isStudent()?s:null;}static boolean staff(User u){return u!=null&&(u.isTeacher()||u.isAdmin());}
  static void register(AttendancePluginConfig config){
   AttendanceSignageSecurity signage=AttendanceSignageSecurity.fromEnvironment();
-  HttpHandler.registerPostRequestHandler("/attendance-checkin",AccessLevel.PUBLIC,r->{String key=sessionKey(r);Student s=strictStudent(r.getUser());try{RotatingQrTokenService t=new RotatingQrTokenService(AttendanceRepository.qrSecret(),CLOCK);long lid=t.validate(r.getString("token"));if(s==null){if(r.getUser()!=null&&r.getUser()!=User.ANONYMOUS)return PostResponse.forbidden("Dieser Check-in ist nur für Schülerinnen und Schüler.",r);PENDING.remember(key,lid);return PostResponse.json(Map.of("ok",false,"loginRequired",true),r);}PENDING.discard(key);return PostResponse.json(Map.of("ok",true,"checkin",AttendanceRepository.qrCheckIn(s.getId(),lid,CLOCK.instant())),r);}catch(IllegalArgumentException e){PENDING.discard(key);return PostResponse.badRequest(e.getMessage(),r);}});
-  HttpHandler.registerPostRequestHandler("/attendance-pending",AccessLevel.PUBLIC,r->{PendingCheckinStore.State state=PENDING.state(sessionKey(r));return PostResponse.json(Map.of("pending",state==PendingCheckinStore.State.ACTIVE,"expired",state==PendingCheckinStore.State.EXPIRED),r);});
-  HttpHandler.registerPostRequestHandler("/attendance-resume",AccessLevel.PUBLIC,r->{String key=sessionKey(r);Student s=strictStudent(r.getUser());if(s==null){if(r.getUser()!=null&&r.getUser()!=User.ANONYMOUS)return PostResponse.forbidden("Dieser Check-in ist nur für Schülerinnen und Schüler.",r);return PostResponse.unauthorized("Bitte melde dich zuerst bei Arcanum an.",r);}try{return PostResponse.json(Map.of("ok",true,"checkin",PENDING.consume(key,lid->AttendanceRepository.qrCheckIn(s.getId(),lid,CLOCK.instant()))),r);}catch(IllegalArgumentException e){return PostResponse.badRequest(e.getMessage(),r);}});
+  HttpHandler.registerPostRequestHandler("/attendance-checkin",AccessLevel.PUBLIC,r->{
+   Student s=strictStudent(r.getUser());
+   try {
+    String token=r.getString("token");
+    long lid=new RotatingQrTokenService(AttendanceRepository.qrSecret(),CLOCK).validate(token);
+    if(s==null){
+     if(r.getUser()!=null&&r.getUser()!=User.ANONYMOUS){LOGGER.info("CHECKIN_ERROR role_not_student");return PostResponse.forbidden("Dieser Check-in ist nur für Schülerinnen und Schüler.",r);}
+     String target="/attendance-checkin?token="+java.net.URLEncoder.encode(token,java.nio.charset.StandardCharsets.UTF_8);
+     String login="/login?next="+java.net.URLEncoder.encode(target,java.nio.charset.StandardCharsets.UTF_8);
+     LOGGER.info("CHECKIN_LOGIN_REQUIRED");
+     return PostResponse.json(Map.of("ok",false,"loginRequired",true,"loginUrl",login),r);
+    }
+    Map<String,Object> result=AttendanceRepository.qrCheckIn(s.getId(),lid,CLOCK.instant());
+    String status=String.valueOf(result.get("status"));
+    if("ALREADY_ARRIVED".equals(status))LOGGER.info("CHECKIN_ALREADY_ARRIVED studentId={}",s.getId());
+    else LOGGER.info("CHECKIN_RECORDED studentId={}",s.getId());
+    return PostResponse.json(Map.of("ok",true,"checkin",result),r);
+   } catch(IllegalArgumentException e){
+    if(e.getMessage()!=null&&e.getMessage().contains("nicht mehr gültig"))LOGGER.info("CHECKIN_TOKEN_EXPIRED");
+    else LOGGER.warn("CHECKIN_ERROR {}",e.getMessage());
+    return PostResponse.badRequest(e.getMessage(),r);
+   } catch(Exception e){LOGGER.warn("CHECKIN_ERROR {}",e.getClass().getSimpleName());return PostResponse.internalServerError("Check-in konnte nicht verarbeitet werden.",r);}
+  });
   HttpHandler.registerPostRequestHandler("/attendance-display-token",AccessLevel.PUBLIC,r->{
    if(!signage.allow(r.getIP(),CLOCK.instant()))return PostResponse.tooManyRequests("Zu viele Signage-Anfragen",r);
    if(!signage.authenticated(r.getCookies()))return PostResponse.unauthorized("Ungültige Signage-Autorisierung",r);
@@ -33,6 +53,5 @@ final class AttendanceRequests {
   HttpHandler.registerPostRequestHandler("/attendance-location-save",AccessLevel.ADMIN,r->{try{Long id=r.containsKey("id")?Long.valueOf(r.getInt("id")):null;Map<String,Object>location=AttendanceRepository.upsertLocation(id,r.getString("code"),r.getString("name"),r.getString("type"),r.getBoolean("active"),r.getInt("displayOrder"));LOGGER.info("Attendance location saved: id={}, code={}, type={}, active={}",location.get("id"),location.get("code"),location.get("type"),location.get("active"));return PostResponse.json(location,r);}catch(IllegalArgumentException e){return PostResponse.badRequest(e.getMessage(),r);}});
  }
  private static String principal(User u){if(u instanceof Teacher t)return "TEACHER:"+t.getId();return "ADMIN:"+u.getUsername();}
- private static String sessionKey(APIPostRequest r){for(Cookie c:r.getCookies())if("session".equals(c.getName()))return c.getValue();return Server.getInstance().getWebServer().getSessionManager().getSession(r).getUUID().toString();}
- private static String qrSvg(String value)throws Exception{var m=new QRCodeWriter().encode(value,BarcodeFormat.QR_CODE,33,33);StringBuilder s=new StringBuilder("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 33 33\" shape-rendering=\"crispEdges\"><rect width=\"33\" height=\"33\" fill=\"white\"/><path fill=\"black\" d=\"");for(int y=0;y<m.getHeight();y++)for(int x=0;x<m.getWidth();x++)if(m.get(x,y))s.append('M').append(x).append(' ').append(y).append("h1v1h-1z");return s.append("\"/></svg>").toString();}
+ private static String qrSvg(String value)throws Exception{var hints=new java.util.EnumMap<com.google.zxing.EncodeHintType,Object>(com.google.zxing.EncodeHintType.class);hints.put(com.google.zxing.EncodeHintType.ERROR_CORRECTION,com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.M);hints.put(com.google.zxing.EncodeHintType.MARGIN,4);var m=new QRCodeWriter().encode(value,BarcodeFormat.QR_CODE,0,0,hints);int width=m.getWidth(),height=m.getHeight();StringBuilder s=new StringBuilder("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").append(width).append(' ').append(height).append("\" shape-rendering=\"crispEdges\"><rect width=\"").append(width).append("\" height=\"").append(height).append("\" fill=\"white\"/><path fill=\"black\" d=\"");for(int y=0;y<height;y++)for(int x=0;x<width;x++)if(m.get(x,y))s.append('M').append(x).append(' ').append(y).append("h1v1h-1z");return s.append("\"/></svg>").toString();}
 }
