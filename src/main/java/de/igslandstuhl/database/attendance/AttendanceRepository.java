@@ -17,7 +17,127 @@ final class AttendanceRepository {
  private static Map<String,Object> lastEvent(Connection c,int sid,String date,Instant cutoff)throws SQLException{return event(c,"SELECT e.id,e.location_id,l.code,l.name,l.type,e.checked_at,e.source,e.confirmed_by FROM attendance_events e JOIN attendance_locations l ON l.id=e.location_id WHERE e.student_id=? AND e.school_date=? AND e.checked_at<=? ORDER BY e.checked_at DESC,e.id DESC LIMIT 1",sid,date,cutoff);}
  private static Map<String,Object> event(Connection c,String sql,int sid,String date,Instant cutoff)throws SQLException{try(PreparedStatement s=c.prepareStatement(sql)){s.setInt(1,sid);s.setString(2,date);if(cutoff!=null)s.setString(3,cutoff.toString());try(ResultSet r=s.executeQuery()){if(!r.next())return null;Map<String,Object>x=new LinkedHashMap<>();x.put("id",r.getLong(1));x.put("locationId",r.getLong(2));x.put("locationCode",r.getString(3));x.put("locationName",r.getString(4));x.put("locationType",r.getString(5));x.put("checkedAt",r.getString(6));x.put("source",r.getString(7));x.put("confirmedBy",r.getString(8));return x;}}}
  static List<Map<String,Object>> snapshot(LocalDate date,Instant cutoff)throws SQLException{List<Map<String,Object>>out=new ArrayList<>();String sql="SELECT s.id,s.first_name,s.last_name,c.id,c.label FROM students s LEFT JOIN classes c ON c.id=s.class ORDER BY c.label,s.last_name,s.first_name";try(PreparedStatement q=connection().prepareStatement(sql);ResultSet r=q.executeQuery()){while(r.next()){Map<String,Object>x=new LinkedHashMap<>();int id=r.getInt(1);x.put("studentId",id);x.put("studentName",r.getString(2)+" "+r.getString(3));x.put("classId",r.getObject(4));x.put("className",r.getString(5));Map<String,Object>a=firstArrival(connection(),id,date.toString()),e=lastEvent(connection(),id,date.toString(),cutoff);x.put("arrival",a);x.put("currentLocation",e);out.add(x);}}return out;}
- static Map<String,Object> upsertLocation(Long id,String code,String name,String type,boolean active,int order)throws SQLException{code=cleanCode(code);name=clean(name,100);if(!Set.of("ARRIVAL","LOCATION").contains(type))throw new IllegalArgumentException("Ungültiger Location-Typ");String sql=id==null?"INSERT INTO attendance_locations(code,name,type,active,display_order) VALUES(?,?,?,?,?)":"UPDATE attendance_locations SET code=?,name=?,type=?,active=?,display_order=? WHERE id=?";try(PreparedStatement s=connection().prepareStatement(sql)){s.setString(1,code);s.setString(2,name);s.setString(3,type);s.setBoolean(4,active);s.setInt(5,order);if(id!=null)s.setLong(6,id);if(s.executeUpdate()!=1)throw new IllegalArgumentException("Standort nicht gefunden");}return locationByCode(code);}
+ static Map<String,Object> upsertLocation(Long id,String code,String name,String type,boolean active,int order)throws SQLException{
+  code=cleanCode(code);
+  name=clean(name,100);
+
+  if(!Set.of("ARRIVAL","LOCATION").contains(type))
+   throw new IllegalArgumentException("Ungültiger Location-Typ");
+
+  Connection c=connection();
+
+  String duplicateSql=id==null
+   ?"SELECT id FROM attendance_locations WHERE code=? COLLATE NOCASE"
+   :"SELECT id FROM attendance_locations WHERE code=? COLLATE NOCASE AND id<>?";
+
+  try(PreparedStatement q=c.prepareStatement(duplicateSql)){
+   q.setString(1,code);
+   if(id!=null)q.setLong(2,id);
+
+   try(ResultSet r=q.executeQuery()){
+    if(r.next())
+     throw new IllegalArgumentException(
+      "Der Bereichscode "+code+" ist bereits vergeben."
+     );
+   }
+  }
+
+  String sql=id==null
+   ?"INSERT INTO attendance_locations(code,name,type,active,display_order) VALUES(?,?,?,?,?)"
+   :"UPDATE attendance_locations SET code=?,name=?,type=?,active=?,display_order=? WHERE id=?";
+
+  try(PreparedStatement s=c.prepareStatement(sql)){
+   s.setString(1,code);
+   s.setString(2,name);
+   s.setString(3,type);
+   s.setBoolean(4,active);
+   s.setInt(5,order);
+
+   if(id!=null)s.setLong(6,id);
+
+   if(s.executeUpdate()!=1)
+    throw new IllegalArgumentException("Standort nicht gefunden");
+  }
+
+  return locationByCode(code);
+ }
+
+ static Map<String,Object> deleteLocation(long id)throws SQLException{
+  Connection c=connection();
+  boolean autoCommit=c.getAutoCommit();
+  c.setAutoCommit(false);
+
+  try{
+   Map<String,Object> location;
+
+   try(PreparedStatement q=c.prepareStatement(
+    "SELECT id,code,name,type,active,display_order FROM attendance_locations WHERE id=?"
+   )){
+    q.setLong(1,id);
+
+    try(ResultSet r=q.executeQuery()){
+     if(!r.next())
+      throw new IllegalArgumentException("Standort nicht gefunden");
+
+     location=location(r);
+    }
+   }
+
+   if("ARRIVAL".equals(location.get("type")))
+    throw new IllegalArgumentException(
+     "Der Ankunftsbereich kann nicht gelöscht werden."
+    );
+
+   long usage;
+
+   try(PreparedStatement q=c.prepareStatement(
+    "SELECT COUNT(*) FROM attendance_events WHERE location_id=?"
+   )){
+    q.setLong(1,id);
+
+    try(ResultSet r=q.executeQuery()){
+     r.next();
+     usage=r.getLong(1);
+    }
+   }
+
+   if(usage>0)
+    throw new IllegalArgumentException(
+     "Dieser Bereich wurde bereits für Anwesenheitsdaten verwendet "
+     +"und kann deshalb nicht gelöscht werden. "
+     +"Bitte deaktivieren Sie ihn stattdessen."
+    );
+
+   String code=String.valueOf(location.get("code"));
+
+   try(PreparedStatement q=c.prepareStatement(
+    "UPDATE attendance_teacher_preferences "
+    +"SET location_code='' WHERE location_code=? COLLATE NOCASE"
+   )){
+    q.setString(1,code);
+    q.executeUpdate();
+   }
+
+   try(PreparedStatement q=c.prepareStatement(
+    "DELETE FROM attendance_locations WHERE id=?"
+   )){
+    q.setLong(1,id);
+
+    if(q.executeUpdate()!=1)
+     throw new IllegalArgumentException("Standort nicht gefunden");
+   }
+
+   c.commit();
+   return location;
+
+  }catch(SQLException|RuntimeException e){
+   c.rollback();
+   throw e;
+
+  }finally{
+   c.setAutoCommit(autoCommit);
+  }
+ }
  static void savePreferences(String principal,String location,List<?>classes)throws SQLException{String ids=classes==null?"[]":classes.stream().map(x->String.valueOf(((Number)x).intValue())).toList().toString();try(PreparedStatement s=connection().prepareStatement("INSERT INTO attendance_teacher_preferences(principal,location_code,class_ids,updated_at) VALUES(?,?,?,?) ON CONFLICT(principal) DO UPDATE SET location_code=excluded.location_code,class_ids=excluded.class_ids,updated_at=excluded.updated_at")){s.setString(1,principal);s.setString(2,location);s.setString(3,ids);s.setString(4,Instant.now().toString());s.executeUpdate();}}
  static Map<String,Object> preferences(String p)throws SQLException{try(PreparedStatement s=connection().prepareStatement("SELECT location_code,class_ids FROM attendance_teacher_preferences WHERE principal=?")){s.setString(1,p);try(ResultSet r=s.executeQuery()){if(!r.next())return Map.of("classes",List.of());String raw=r.getString(2).replace("[","").replace("]","").trim();List<Integer>ids=raw.isEmpty()?List.of():Arrays.stream(raw.split(",")).map(String::trim).map(Integer::valueOf).toList();Map<String,Object>x=new LinkedHashMap<>();x.put("location",r.getString(1));x.put("classes",ids);return x;}}}
  private static String cleanCode(String s){s=s==null?"":s.trim().toUpperCase(Locale.ROOT);if(!s.matches("[A-Z0-9_-]{1,32}"))throw new IllegalArgumentException("Code muss 1–32 Zeichen aus A-Z, 0-9, _ oder - enthalten");return s;}private static String clean(String s,int n){s=s==null?"":s.trim();if(s.isEmpty()||s.length()>n)throw new IllegalArgumentException("Ungültiger Name");return s;}

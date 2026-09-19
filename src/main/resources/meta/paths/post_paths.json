@@ -54,5 +54,12 @@
     "namespaces": [],
     "context": "html",
     "access_level": "admin"
+  },
+  "/attendance-location-delete": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "admin"
   }
 }

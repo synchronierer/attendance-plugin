@@ -51,6 +51,23 @@ final class AttendanceRequests {
   HttpHandler.registerPostRequestHandler("/attendance-preferences-save",AccessLevel.TEACHER,r->{User u=r.getUser();if(!staff(u))return PostResponse.forbidden("Nur Lehrkräfte und Admins",r);AttendanceRepository.savePreferences(u.getUsername(),r.getString("location"),r.getList("classIds"));return PostResponse.json(Map.of("ok",true),r);});
   HttpHandler.registerPostRequestHandler("/attendance-admin-data",AccessLevel.ADMIN,r->PostResponse.json(Map.of("locations",AttendanceRepository.locations(false)),r));
   HttpHandler.registerPostRequestHandler("/attendance-location-save",AccessLevel.ADMIN,r->{try{Long id=r.containsKey("id")?Long.valueOf(r.getInt("id")):null;Map<String,Object>location=AttendanceRepository.upsertLocation(id,r.getString("code"),r.getString("name"),r.getString("type"),r.getBoolean("active"),r.getInt("displayOrder"));LOGGER.info("Attendance location saved: id={}, code={}, type={}, active={}",location.get("id"),location.get("code"),location.get("type"),location.get("active"));return PostResponse.json(location,r);}catch(IllegalArgumentException e){return PostResponse.badRequest(e.getMessage(),r);}});
+  HttpHandler.registerPostRequestHandler("/attendance-location-delete",AccessLevel.ADMIN,r->{
+   try{
+    long id=r.getInt("id");
+    Map<String,Object>location=AttendanceRepository.deleteLocation(id);
+    LOGGER.info(
+     "Attendance location deleted: id={}, code={}",
+     location.get("id"),
+     location.get("code")
+    );
+    return PostResponse.json(
+     Map.of("ok",true,"location",location),
+     r
+    );
+   }catch(IllegalArgumentException e){
+    return PostResponse.badRequest(e.getMessage(),r);
+   }
+  });
  }
  private static String principal(User u){if(u instanceof Teacher t)return "TEACHER:"+t.getId();return "ADMIN:"+u.getUsername();}
  private static String qrSvg(String value)throws Exception{var hints=new java.util.EnumMap<com.google.zxing.EncodeHintType,Object>(com.google.zxing.EncodeHintType.class);hints.put(com.google.zxing.EncodeHintType.ERROR_CORRECTION,com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.M);hints.put(com.google.zxing.EncodeHintType.MARGIN,4);var m=new QRCodeWriter().encode(value,BarcodeFormat.QR_CODE,0,0,hints);int width=m.getWidth(),height=m.getHeight();StringBuilder s=new StringBuilder("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").append(width).append(' ').append(height).append("\" shape-rendering=\"crispEdges\"><rect width=\"").append(width).append("\" height=\"").append(height).append("\" fill=\"white\"/><path fill=\"black\" d=\"");for(int y=0;y<height;y++)for(int x=0;x<width;x++)if(m.get(x,y))s.append('M').append(x).append(' ').append(y).append("h1v1h-1z");return s.append("\"/></svg>").toString();}
