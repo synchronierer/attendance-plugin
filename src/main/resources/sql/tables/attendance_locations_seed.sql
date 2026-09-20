@@ -1,0 +1,1 @@
+INSERT OR IGNORE INTO attendance_locations(code,name,type,active,display_order) VALUES ('ARRIVAL','Eingang','ARRIVAL',1,0),('LA','Lernatelier','LOCATION',1,10),('WS','Workshopraum','LOCATION',1,20),('NAWI','NaWi-Saal','LOCATION',1,30),('INPUT1','Input-Raum 1','LOCATION',1,40),('GN','Gelingensnachweisraum','LOCATION',1,50);

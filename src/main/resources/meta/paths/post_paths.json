@@ -1,0 +1,51 @@
+{
+  "/attendance-checkin": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "student"
+  },
+  "/attendance-display-token": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "public"
+  },
+  "/attendance-data": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "teacher"
+  },
+  "/attendance-manual-arrival": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "teacher"
+  },
+  "/attendance-preferences-save": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "teacher"
+  },
+  "/attendance-admin-data": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "admin"
+  },
+  "/attendance-location-save": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "admin"
+  }
+}

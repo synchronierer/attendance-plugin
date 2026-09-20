@@ -1,0 +1,2 @@
+package de.igslandstuhl.database.attendance;import de.igslandstuhl.database.plugins.config.PluginConfig;import de.igslandstuhl.database.plugins.config.ShortAnswerSetting;
+public final class AttendancePluginConfig extends PluginConfig<AttendancePlugin>{static final String LESSON_TIMES="lessonCheckTimes";public AttendancePluginConfig(AttendancePlugin p){super(p,new ShortAnswerSetting(LESSON_TIMES,"Stunden-Prüfzeiten","Kommagetrennte Prüfzeiten für Stunde 1 bis 6.","08:00,08:50,09:50,10:40,11:40,12:25"));}String lessonTimes(){return(String)getSetting(LESSON_TIMES).getValue();}}

@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS attendance_config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
