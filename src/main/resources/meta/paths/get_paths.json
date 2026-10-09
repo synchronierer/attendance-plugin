@@ -53,6 +53,15 @@
     "context": "js",
     "access_level": "teacher"
   },
+  "/attendance.css": {
+    "type": "GET",
+    "handler_type": "FileRequestHandler",
+    "namespaces": [
+      "teacher"
+    ],
+    "context": "css",
+    "access_level": "teacher"
+  },
   "/attendance-admin.js": {
     "type": "GET",
     "handler_type": "FileRequestHandler",
